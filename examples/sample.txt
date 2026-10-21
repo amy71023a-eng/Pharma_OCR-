@@ -1,0 +1,11 @@
+Product: DEMO MEDICINE
+LOT: DEMO2026A
+EXP: 2028/12
+DEMONSTRATION ONLY
+Not for medical use.
+
+DEMONSTRATION LEAFLET
+This is fictional demonstration material.
+No therapeutic indication or dosage is provided.
+Store and handle according to a verified SOP.
+Review all text against the approved reference.

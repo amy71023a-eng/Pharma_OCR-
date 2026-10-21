@@ -1,0 +1,86 @@
+{
+  "description": "固定型別讓 API、ETL 與報告共用相同契約；缺值保留 null。",
+  "properties": {
+    "product": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Product"
+    },
+    "batch": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Batch"
+    },
+    "expiry": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expiry"
+    },
+    "full_text": {
+      "title": "Full Text",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "mode": {
+      "default": "text_demo",
+      "enum": [
+        "text_demo",
+        "ocr"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "review_required": {
+      "const": true,
+      "default": true,
+      "title": "Review Required",
+      "type": "boolean"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "full_text"
+  ],
+  "title": "Result",
+  "type": "object"
+}

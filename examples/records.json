@@ -1,0 +1,28 @@
+[
+  {
+    "product": "DEMO MEDICINE",
+    "batch": "DEMO2026A",
+    "expiry": "2028-12-31",
+    "full_text": "Product: DEMO MEDICINE\nLOT: DEMO2026A\nEXP: 2028/12\nDEMONSTRATION ONLY\nNot for medical use.\n\nDEMONSTRATION LEAFLET\nThis is fictional demonstration material.\nNo therapeutic indication or dosage is provided.\nStore and handle according to a verified SOP.\nReview all text against the approved reference.",
+    "confidence": null,
+    "mode": "text_demo",
+    "review_required": true,
+    "warnings": [
+      "年月效期依示範規則換算月底，須由 SOP 確認",
+      "文字備援模式，未執行 OCR"
+    ]
+  },
+  {
+    "product": "DEMO MEDICINE",
+    "batch": "DEMO2026A",
+    "expiry": "2028-12-31",
+    "full_text": "Product: DEMO MEDICINE\nLOT: DEMO2026A\nEXP: 2028/12\nDEMONSTRATION ONLY\nNot for medical use.\n\nDEMONSTRATION LEAFLET\nThis is fictional demonstration material.\nNo therapeutic indication or dosage is provided.\nStore and handle according to a verified SOP.\nReview all text against the approved reference.",
+    "confidence": null,
+    "mode": "text_demo",
+    "review_required": true,
+    "warnings": [
+      "年月效期依示範規則換算月底，須由 SOP 確認",
+      "文字備援模式，未執行 OCR"
+    ]
+  }
+]
