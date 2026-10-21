@@ -1,3 +1,5 @@
+> 最新 GCP 與 GitHub Actions 已完成狀態請見 deploy/DEPLOYED.md。本頁保留第二版交付當時的歷史狀態。
+
 # 第二版完成狀態與驗證證據
 
 2026 年 10 月 21 日，本機 Docker Desktop，Linux arm64 容器。

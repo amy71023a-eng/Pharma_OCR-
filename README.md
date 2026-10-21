@@ -1,113 +1,158 @@
-# 進口醫藥產品批次外盒與仿單 OCR 審核輔助系統
+# 進口醫藥產品外盒與仿單辨識及審核報告輔助系統
 
-這是一個功能展示用 Python MVP，將研發及 QA 文件覆核經驗轉成可執行工具。使用虛構外盒與仿單，可上傳圖片或多頁 PDF，擷取品名、批號、效期及全文，下載附原圖與人工覆核欄的 Word。所有結果待人工覆核；不自動決定放行、不驗證法規合規。
+本作品將醫藥產品文件人工覆核情境，轉化為可以實際操作的 Python 專案：上傳外盒圖片或仿單 PDF，系統辨識文字、整理品名／批號／效期，產出附原圖與人工覆核欄的 Word 報告，並提供資料匯入、品質統計及附來源的 SOP 查詢。
 
-## 第二版 Docker 與知識檢索
+作品使用自行製作的虛構資料，展示品質管理經驗如何結合程式設計、資料處理與雲端部署。系統僅協助整理證據，**不自動決定產品放行，也不判定法規合規**。
 
-建議現在使用 Docker 啟動，不必在 Mac 安裝 Python 套件或 OCR 工具：
+## 功能展示官可以先看這些成果
+
+| 展示面向 | 已實作內容 | 實際驗證 |
+| --- | --- | --- |
+| 文件辨識 | 圖片與多頁 PDF 文字辨識，擷取品名、批號、效期及全文 | 英文合成圖片與兩頁 PDF 測試通過 |
+| 審核報告 | Word 包含原圖、辨識結果、缺值提示、人工覆核及簽名欄 | 可透過操作頁產生並下載 |
+| 資料處理 | JSON／CSV 匯入 SQLite，資料格式驗證、重送去重與 SQL 統計 | 雲端驗收新增 1 筆、重複 1 筆 |
+| 知識查詢 | 搜尋示範 SOP，引用檔名、章節及原文；查無足夠證據就拒答 | 來源引用與拒答測試通過 |
+| 容器環境 | Docker 封裝 Python、OCR、PDF 工具及繁體中文語言包 | Mac 與 GCP 的 Linux 容器均成功啟動 |
+| 雲端部署 | 部署於 GCP 虛擬機，透過 SSH 隧道操作 | GCP 容器內 23 項測試全部通過 |
+| 持續整合 | GitHub Actions 自動建置、測試、依賴掃描與軟體物料清單 | [首輪雲端流程成功](https://github.com/amy71023a-eng/Pharma_OCR-/actions/runs/39557254909) |
+
+知識查詢採用「檢索後節錄原文」的輕量方法，不需要模型金鑰；**尚未串接生成式大型語言模型**。此處不將它宣稱為完整的生成式 RAG 系統。
+
+## 系統解決什麼問題
+
+人工核對進口產品外盒與仿單時，需要在原圖、批號、效期及文件內容之間反覆切換，也需要整理紀錄。本作品把資料整理與報告產出串成同一條流程，讓覆核者保留原始證據，專注判讀差異。
+
+1. **保留原檔**：上傳文件保存到獨立工作資料夾，PDF 逐頁轉成圖片。
+2. **辨識與整理**：文字辨識後，以明確標籤規則整理品名、批號與效期；缺值保留空值，不猜測補填。
+3. **提示覆核**：缺值、日期格式異常及低信心結果會提示人工確認。
+4. **產出紀錄**：將擷取結果、逐頁原圖、全文及人工覆核欄合併為 Word。
+5. **資料再利用**：將 JSON／CSV 匯入資料庫，檢查重複與缺漏，產生統計。
+
+## 架構概覽
+
+```mermaid
+flowchart TD
+    A[上傳外盒圖片與仿單 PDF] --> B[保留原檔與逐頁轉圖]
+    B --> C[文字辨識與信心分數]
+    C --> D[結構化欄位及缺值日期檢查]
+    D --> E[Word 原圖 全文 人工覆核欄]
+    E --> F[品質人員依既有程序覆核]
+    D --> G[JSON 或 CSV]
+    G --> H[資料驗證及 SQLite 去重匯入]
+    H --> I[SQL 品質統計]
+    J[示範 SOP] --> K[檢索及原文節錄]
+    K --> L[附來源回答或拒答]
+```
+
+## 在自己的電腦啟動
+
+先安裝並啟動 Docker Desktop，再下載或複製此儲存庫。在專案根目錄執行：
 
 ```bash
+git clone https://github.com/amy71023a-eng/Pharma_OCR-.git
+cd Pharma_OCR-
 docker compose up -d --build --wait
 ```
 
-開啟 http://127.0.0.1:8081 。操作頁新增 SOP 檢索，回答引用檔名、章節及原文；查不到就拒答。此版採字詞檢索與擷取式回答，不呼叫 LLM，也不假稱完成生成模型整合。
+開啟 **http://127.0.0.1:8081** 。這個指令會建置環境、啟動服務並等待健康檢查；主機不必另外安裝 Python、Tesseract 或 Poppler。第一次建置需要下載套件。
 
-完整雲端 VM 建立、SSH 隧道、Docker 安裝與 GitHub CI 步驟請先看 [部署指南](deploy/README.md)。驗證狀態見 `docs/STATUS_V2.md`，以下第一版紀錄中的「Docker 未執行」「RAG 未實作」已由第二版更新；GCP/OCI 實際部署及遠端 Actions 仍須目標帳號/儲存庫與授權。
+若已下載 ZIP，只需解壓、進入 `pharma-review` 資料夾，執行最後一行指令。預設服務只供本機連線，產生的資料保留在 Docker 資料卷中。
 
-## 最短啟動 Mac 與 VS Code
+## 三分鐘展示順序
 
-下載 ZIP 解壓，在 VS Code 開啟 `pharma-review` 資料夾，以 Terminal 執行：
+1. **上傳文件**：在操作頁選擇 `examples/sample.pdf`，按「辨識並產生 Word」。此檔包含虛構外盒與仿單共兩頁。
+2. **展示報告**：下載 Word，對照品名、批號、效期、原圖及完整文字。說明人工覆核欄保留空白，系統不代替品質單位決策。
+3. **展示資料管線**：執行下方匯入指令兩次，觀察重送資料如何去重。
+4. **展示知識查詢**：詢問「OCR 信心低於85怎麼處理」，查看 SOP 來源；再問「明天天氣與股市預測」，確認系統拒答。
+5. **展示工程驗證**：開啟測試紀錄及 GitHub Actions，說明相同程式在本機及 GCP 都可執行。
 
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m uvicorn app:app --host 127.0.0.1 --port 8080
-```
-
-`venv` 隔離套件，避免改到其他專案；`requirements.txt` 鎖定版本；uvicorn 啟動 FastAPI 網站及 API。建議 Python 3.12，若尚未安裝可用 `brew install python@3.12`。在 VS Code 的 Python interpreter 選 `.venv/bin/python`。
-
-瀏覽 http://127.0.0.1:8080 ，先按「產生文字備援報告」確認流程，再下載 Word。此模式沒有 OCR，畫面與報告都會明示。`/docs` 是可互動 API 文件，`/health` 檢查程序及工具路徑。
-
-## 啟用真正 OCR
-
-另開終端執行：
+## 資料管線與統計
 
 ```bash
-brew install tesseract poppler
-# 需繁體中文文件再安裝，套件較大
-brew install tesseract-lang
+docker compose exec -T review python etl.py examples/records.json --db output/demo.sqlite
+docker compose exec -T review python etl.py examples/records.csv --db output/demo.sqlite
 ```
 
-Tesseract 把影像變成文字；Poppler 把 PDF 每頁轉圖。英文範例用預設 `eng`；中文啟動方式為 `OCR_LANG=chi_tra+eng python -m uvicorn app:app --host 127.0.0.1 --port 8080`。範例英文是為了讓乾淨環境只裝基本引擎也能重現；程式註解、操作及報告為繁體中文。
+這兩個指令在容器內執行「擷取資料 → 驗證與轉換 → 載入資料庫」，也就是 ETL。示範 JSON 含兩筆相同文件；乾淨資料庫首次預期新增 1 筆、重複 1 筆。再次匯入相同內容時，不會重複新增。
 
-上傳 `examples/sample.pdf`（兩頁外盒及仿單），或 `examples/box.png`。點辨識、查看 JSON 與提示、下載 Word。Word 的擷取結果、逐頁原圖與全文分開展示，勾選欄與覆核簽名留空。人工須拿核准樣本對照版面、字體及色塊；系統不量測色差，也不判定版面合格。
-
-也可用 CLI，適合功能展示時快速演示：
-
-```bash
-python app.py --file examples/sample.pdf
-python app.py --file examples/box.png --lang eng
-python app.py --text examples/sample.txt
-```
-
-每次工作存到 `output/<UUID>/`，包含原始上傳檔、轉圖、`result.json` 與 `report.docx`。文字備援沒有上傳原圖；預先附的 `output/sample-review.docx` 是已知文字搭配合成原圖，`output/sample-ocr-review.docx` 才是實際 PDF OCR 結果。
-
-## ETL 操作及意義
-
-```bash
-python etl.py examples/records.json --db output/demo.sqlite
-python etl.py examples/records.csv --db output/demo.sqlite
-```
-
-JSON/CSV Extract → Pydantic 驗證 Transform → SQLite Load。JSON 含同一份資料兩次，乾淨資料庫第一次預期 inserted=1、duplicates=1；再次執行全部算重送。以全文 SHA256 去重，不把同批號差異文件直接丟棄。CLI 印出本次新增、重複、資料庫總筆數及缺效期數，也保存 `output/etl-summary.json`。
+去重依據是原始全文的 SHA256 雜湊。相同批號但文字不同仍會保留，以免差異版本被誤刪；目前沒有自動判定哪一版才是核准資料。
 
 ```sql
+-- 檢查總筆數及缺少效期的筆數
 SELECT COUNT(*) AS total, SUM(expiry IS NULL) AS missing_expiry FROM batches;
+
+-- 統計每個產品的文件數
 SELECT product, COUNT(*) AS documents FROM batches GROUP BY product;
+
+-- 找出同批號有多份文件的線索，供人工調查
 SELECT batch, COUNT(*) FROM batches GROUP BY batch HAVING COUNT(*) > 1;
 ```
 
-這些 SQL 分別檢查完整性、產品分布及同批號多版本線索，不等同業務核准或放行。可用 VS Code SQLite extension 或 Python sqlite3 查詢。
-
-## 測試與評估
+## 測試與操作維護
 
 ```bash
-python -m pytest -v --junitxml=output/junit.xml
-python evaluate.py examples/ground_truth.json output/ocr-predictions.json
+# 執行單元、介面及真實 OCR 整合測試
+docker compose exec -T review python -m pytest -v
+
+# 驗證執行中的服務、Word 下載、知識查詢及圖片 PDF 辨識
+docker compose exec -T review python scripts/container_check.py
+
+# 查看容器狀態與最近日誌
+docker compose ps
+docker compose logs --tail=100
+
+# 將容器產生的報告與資料下載到電腦
+docker compose cp review:/app/output/. ./downloaded-output/
+
+# 停止服務，保留資料卷
+docker compose down
 ```
 
-pytest 驗證解析、日期、閏年、缺值、重複、OCR 失敗、報告圖片、CSV、API 與真實 OCR 整合；外部工具缺少時整合測試會標示 skip。測試不是藥品系統驗證文件。詳見 `docs/TEST_PLAN.md`、當次執行 `output/tests.txt`、`output/junit.xml` 及 `docs/RESULTS.md`。
+測試涵蓋欄位解析、閏年與日期、缺值、重複資料、OCR 失敗、Word 原圖、CSV、介面回應、SOP 來源與拒答。外部 OCR 工具缺少時，整合測試會標示略過；本次 GCP 的 23 項測試均通過，沒有略過。
 
-評估工具比較獨立標註與預測，計算欄位準確率、precision/recall、全文 CER。附的 ground truth 是生成合成影像時已知的標籤，尚不是多人人工標註的實務資料集。正式評估須人工逐頁轉錄、雙人處理歧異、凍結盲測集。不得以單一乾淨樣本成績推估真實文件。所有資料即使高信心也要人工覆核。
+GitHub Actions 也會執行套件漏洞掃描及產生 CycloneDX 格式的軟體物料清單（SBOM）。掃描沒有發現已知漏洞，不代表系統不存在其他風險。
 
-## 容器與供應鏈
+## 雲端部署與連線
 
-```bash
-docker compose up --build
-python -m pip_audit -r requirements.txt -f json -o output/audit.json
-cyclonedx-py requirements requirements.txt -o output/sbom.cdx.json
-```
+已在 GCP 的 Ubuntu 24.04、2 vCPU、8 GiB 記憶體、約 30 GB 磁碟之 VM 部署 Docker，並完成容器健康檢查、23 項測試與資料管線驗收。應用透過 SSH 隧道使用，未將應用連接埠對全網開放。
 
-Docker 封裝 Python、OCR 與 PDF 工具，Compose 保存 output volume。掃描會查已知漏洞；SBOM 列出依賴。需要網路。`.github/workflows/ci.yml` 在上傳 GitHub 後觸發測試、範例 OCR、掃描與證據上傳；本交付已有本機 Docker 建置與執行紀錄，尚無遠端 CI 執行紀錄。
+實際 VM 連線命令及部署證據見 [已完成的雲端部署說明](deploy/DEPLOYED.md)。新環境安裝步驟見 [Docker 與雲端部署指南](deploy/README.md)。OCI 依本次範圍保留可執行步驟，尚未實際部署。
 
-`docs/DEPLOYMENT.md` 有 Linux 排查、log、health 及 GCP/OCI 部署設計。雲端設計參考官方 [Cloud Run 容器契約](https://docs.cloud.google.com/run/docs/container-contract) 與 [OCI Container Instances](https://docs.oracle.com/en-us/iaas/Content/container-instances/overview-of-container-instances.htm)，並未實際部署。
+## 技術選擇與意義
 
-## 專案導覽與已知限制
+| 工具 | 在作品中的作用 |
+| --- | --- |
+| Python／FastAPI | 提供操作頁、文件處理 API、健康檢查及互動介面文件 |
+| Pydantic／JSON Schema | 固定輸出欄位型別，讓 API、報告與資料管線共用契約 |
+| Tesseract／Poppler | 將影像辨識為文字，並將 PDF 逐頁轉圖 |
+| python-docx | 自動產生包含原圖與人工覆核欄的 Word |
+| SQLite／SQL | 儲存結構化資料、重送去重及品質統計 |
+| pytest | 把解析規則與異常情境轉成可重現測試 |
+| Docker／GitHub Actions | 封裝執行環境，在本機及雲端自動建置與驗證 |
 
-- `app.py`：資料契約、OCR、解析、Word、FastAPI、CLI；繁體中文註解解釋決策。
-- `etl.py`、`evaluate.py`：資料匯入與獨立評估。
-- `schema.json`：Pydantic 產生的 JSON Schema，不是 LLM 已部署的聲明。
-- `examples/`：自行生成的虛構外盒、仿單、PDF、JSON/CSV 及標籤。
-- `docs/ARCHITECTURE.md`：架構圖及設計取捨。
-- `output/`：實際報告、測試、SQL 摘要、掃描及 SBOM。
+## 專案檔案導覽
 
-規則只認行首標籤及冒號；未標示欄位不猜測。年月效期依示範規則轉月底，仍須 SOP 確認。不支援手寫辨識保證、加密 PDF、跨文件自動配對、核准主檔或版面/色差合格判定。單頁 OCR 有 45 秒 timeout；PDF 最多十頁、上傳最多 10 MB。
+| 檔案或資料夾 | 內容 |
+| --- | --- |
+| `app.py` | 操作頁、API、OCR、欄位解析及 Word 報告 |
+| `rag.py`、`knowledge/` | SOP 檢索、附來源的原文節錄與拒答 |
+| `etl.py`、`evaluate.py` | 資料匯入、SQL 統計及標註資料評估 |
+| `examples/` | 虛構圖片、PDF、文字、JSON／CSV 與已知標籤 |
+| `tests/` | 單元、介面與 OCR 整合測試 |
+| `deploy/` | Docker 安裝、GCP VM 與雲端部署步驟 |
+| `docs/TEST_PLAN.md` | 測試計畫及人工驗收、OCR 評估方法 |
+| `.github/workflows/ci.yml` | GitHub 自動建置與驗證流程 |
 
-MVP 已實作 OCR → Word → 測試 → ETL 與附來源的擷取式 SOP 檢索。生成式 LLM、登入/權限、電子簽章、版本化審核軌跡及雲端部署尚未實作。沒有自動放行及合規認證。僅使用虛構資料在本機展示；清理與保存期限需自行管理。
+本機執行結果在 `output/`；GitHub 驗證結果可從 Actions 的 `container-evidence` 下載。原始產出、日誌及資料庫不直接提交到儲存庫。
 
-## 三分鐘功能展示展示順序
+## 使用限制與人工覆核界線
 
-1. 開操作頁，上傳兩頁 sample.pdf，說明原始證據、OCR 與結構化欄位。
-2. 下載 Word，展示原圖、全文與人工覆核欄，解釋不代替 QA 決策。
-3. 執行 ETL 兩次，展示去重及 SQL；打開測試結果及架構圖，依專案應用方向使用說明。
+- 欄位解析支援行首 `Product／品名`、`LOT／Batch／批號`、`EXP／Expiry／效期` 加冒號。自由版面或標籤不符時可能缺值，不自動猜測。
+- 年月效期依示範規則換算月底，實務上仍須依既有 SOP 確認；不自動修補 OCR 的 O／0 混淆。
+- 低信心結果會優先提示覆核；高信心也不能免除人工核對。信心分數不是校準後的正確率。
+- 色塊、字體、印刷與版面僅提供人工比對提示，沒有自動色差或版面合格判定。
+- 已實測英文合成文件；繁體中文語言包雖已封裝，尚未完成中文文件效能驗證。單一合成樣本不能代表真實文件準確率。
+- 上傳限制為 10 MB、PDF 最多十頁；不保證手寫辨識，也不支援加密 PDF。
+- 尚未實作生成式 LLM、登入權限、電子簽章、完整稽核軌跡、產品核准主檔或正式合規驗證。僅供虛構資料示範。
+
+**MVP** 是「最小可行產品」：先把核心流程做成能使用、能測試的版本，再依實際需求補齊正式上線能力。本作品目前已能展示文件辨識、審核輔助、資料管線與雲端執行，不等同已通過驗證的正式品質系統。
