@@ -8,3 +8,6 @@ output/*
 !.env.example
 MANIFEST.sha256.json
 .DS_Store
+
+# 使用者匯入文件僅供本機搜尋
+knowledge/local-*.md

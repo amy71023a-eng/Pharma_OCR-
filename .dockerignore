@@ -3,3 +3,10 @@ __pycache__
 .pytest_cache
 output
 .git
+
+# 使用者匯入文件僅供本機搜尋
+knowledge/local-*.md
+
+# 不將金鑰打包進映像
+.env
+.env.*

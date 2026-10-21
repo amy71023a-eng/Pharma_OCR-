@@ -13,6 +13,14 @@
       "default": null,
       "title": "Product"
     },
+    "product_evidence": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Product Evidence",
+      "type": "array"
+    },
     "batch": {
       "anyOf": [
         {
@@ -36,6 +44,48 @@
       ],
       "default": null,
       "title": "Expiry"
+    },
+    "expiry_raw": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expiry Raw"
+    },
+    "serial_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Serial Number"
+    },
+    "field_candidates": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Field Candidates",
+      "type": "object"
+    },
+    "ocr_attempts": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Ocr Attempts",
+      "type": "array"
     },
     "full_text": {
       "title": "Full Text",

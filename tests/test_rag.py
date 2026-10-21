@@ -19,3 +19,11 @@ def test_rag_api():
 
 def test_empty_knowledge(tmp_path):
     assert retrieve('OCR信心處理',tmp_path).abstained
+
+
+def test_single_keyword_and_spaced_chinese(tmp_path):
+    (tmp_path/'example.md').write_text('# 測試\n\n## 文件原文\nDemomed 高 糖 測 試 資 料，請 人 工 覆 核。',encoding='utf-8')
+    assert not retrieve('Demomed',tmp_path).abstained
+    assert not retrieve('高糖測試',tmp_path).abstained
+    assert not retrieve('人工覆核',tmp_path).abstained
+    assert retrieve('UnknownName',tmp_path).abstained
