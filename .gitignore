@@ -11,3 +11,13 @@ MANIFEST.sha256.json
 
 # 使用者匯入文件僅供本機搜尋
 knowledge/local-*.md
+
+# 私人職涯資料不發布
+private-career-notes/
+**/INTERVIEW*
+**/*interview*
+**/*resume*
+**/*面試*
+**/*履歷*
+**/*應徵*
+**/*講稿*

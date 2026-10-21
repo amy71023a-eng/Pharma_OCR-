@@ -10,3 +10,13 @@ knowledge/local-*.md
 # 不將金鑰打包進映像
 .env
 .env.*
+
+# 私人職涯資料不發布
+private-career-notes/
+**/INTERVIEW*
+**/*interview*
+**/*resume*
+**/*面試*
+**/*履歷*
+**/*應徵*
+**/*講稿*
